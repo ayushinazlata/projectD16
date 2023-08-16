@@ -1,6 +1,7 @@
 from django.db import models
-from django.contrib.auth.models import User
+from users.models import User
 from tinymce import models as tinymce_models
+from django.urls import reverse
 
 
 class Category(models.Model):
@@ -16,39 +17,14 @@ class Category(models.Model):
 
 
 class Post(models.Model):
-    TANK = 'TN'
-    HEALER = 'HL'
-    DAMAGE_D = 'DD'
-    TRADER = 'TR'
-    GOLD_MASTER = 'GM'
-    QUEST_GIVER = 'QG'
-    BLACKSMITH = 'BS'
-    TANNER = 'TA'
-    POTION_MASTER = 'PM'
-    SPELL_MASTER = 'SM'
-
-    CATEGORIES = (
-        (TANK, 'Танки'),
-        (HEALER, 'Хилы'),
-        (DAMAGE_D, 'ДД'),
-        (TRADER, 'Торговцы'),
-        (GOLD_MASTER, 'Голдмастеры'),
-        (QUEST_GIVER, 'Квестгиверы'),
-        (BLACKSMITH, 'Кузнецы'),
-        (TANNER, 'Кожевники'),
-        (POTION_MASTER, 'Зельевары'),
-        (SPELL_MASTER, 'Мастера заклинаний'),
-    )
-
-    publication = models.CharField(max_length=2, choices=CATEGORIES, default=TANK)
     created_at = models.DateTimeField('дата создания', auto_now_add=True)
-    category = models.ManyToManyField(
+    category = models.ForeignKey(
         Category,
-        through='PostCategory',
+        related_name='posts',
         verbose_name='категория',
+        on_delete=models.CASCADE,
     )
     title = models.CharField('заголовок', max_length=256)
-    text = models.TextField('текст')
     attachments = tinymce_models.HTMLField()
     author = models.ForeignKey(
         User,
@@ -59,9 +35,9 @@ class Post(models.Model):
 
     @property
     def preview(self):
-        if len(self.text) > 128:
-            return f'{self.text[0:128]}...'
-        return f'{self.text}'
+        if len(self.attachments) > 128:
+            return f'{self.attachments[0:128]}...'
+        return f'{self.attachments}'
 
     def __str__(self):
         return f'{self.title}'
@@ -70,30 +46,11 @@ class Post(models.Model):
         verbose_name = 'объявление'
         verbose_name_plural = 'объявления'
 
+    def get_absolute_url(self):
+        return f'/adverts/{self.id}'
+
     # def get_absolute_url(self):
-    #     return f'/adverts/{self.id}'
-
-
-class PostCategory(models.Model):
-    post = models.ForeignKey(
-        Post,
-        on_delete=models.CASCADE,
-        verbose_name='объявление',
-        related_name='post_category',
-    )
-    category = models.ForeignKey(
-        Category,
-        on_delete=models.CASCADE,
-        verbose_name='категория',
-        related_name='post_category',
-    )
-
-    def __str__(self):
-        return f'объявление {self.post} категория {self.category}'
-
-    class Meta:
-        verbose_name = 'объявление по категории'
-        verbose_name_plural = 'объявления по категориям'
+    #     return reverse('advert_detail', args=[str(self.id)])
 
 
 class Reaction(models.Model):
@@ -103,7 +60,7 @@ class Reaction(models.Model):
         verbose_name='отклик',
         related_name='reactions',
     )
-    user = models.ForeignKey(
+    author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         verbose_name='автор',
@@ -111,6 +68,11 @@ class Reaction(models.Model):
     )
     text = models.TextField('текст')
     created_at = models.DateTimeField('дата создания', auto_now_add=True)
+    status = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.post}'
+
+    class Meta:
+        verbose_name = 'отклик'
+        verbose_name_plural = 'отклики'
