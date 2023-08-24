@@ -9,7 +9,7 @@ from django.views.generic.edit import CreateView
 
 from users.forms import SignUpForm, ActivateForm
 from users.models import OneTimeCode
-from users.services import generate_random_string
+from users.services import generate_random_string, send_message
 
 
 class SignUpView(CreateView):
@@ -27,8 +27,8 @@ class SignUpView(CreateView):
         print(code)
         send_mail(
             subject='Подтвердите ваш аккаунт!',
-            message=f'{new_user.username}, для завершения регистрации введите код {code}, перейдя по '
-                    f'<a href="http://127.0.0.1:8000/users/activate_account/">ссылке</a>!',
+            message=f'{new_user.username}, для завершения регистрации введите код {code} на '
+                    f'странице активации аккаунта',
             from_email=None,
             recipient_list=[new_user.email],
         )
@@ -44,14 +44,16 @@ class LoginUserView(LoginView):
 
 
 def activate_account(request):
-    username = request.POST.get('username')
     code = request.POST.get('code')
-    one_time_code = get_object_or_404(OneTimeCode, code=code, user__username=username)
+    one_time_code = get_object_or_404(OneTimeCode, code=code)
     user = one_time_code.user
     user.is_active = True
     user.save()
-    login(request, user)
-    return redirect('/adverts')
+    one_time_code.delete()
+    title = 'вы успешно зарегистрировались на сайте!'
+    message = f'вы успешно зарегистрировались на <a href="{request.get_host()}/adverts">сайте</a>!'
+    send_message(user.username, user.email, title, message)
+    return redirect('login')
 
 
 def logout_user(request):

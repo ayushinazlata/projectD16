@@ -1,10 +1,14 @@
 {% extends 'flatpages/default.html' %}
 
+{% block title %}
+Создание отклика
+{% endblock title %}
+
 {% block content %}
 
 <h1>Создание отклика</h1>
 <hr>
-<form action="" method="post">
+<form action="{% url 'reaction_create' advert_id %}" method="post">
   {% csrf_token %}
   {{ form.as_p }}
   <input type="submit" value="Сохранить" />

@@ -1,5 +1,5 @@
 {% load django_bootstrap5 %}
-<!--<!DOCTYPE html>-->
+<!DOCTYPE html>
 <html lang="en">
     <head>
         <meta charset="utf-8" />
@@ -16,6 +16,7 @@
         <!-- Core theme CSS (includes Bootstrap)-->
         <link href="{% static 'css/styles.css' %}" rel="stylesheet" />
 
+
     </head>
     <body>
         <!-- Responsive navbar-->
@@ -30,10 +31,10 @@
                 </button>
                 <div class="nav nav-pills nav-fill" id="navbarResponsive">
                     <ul class="navbar-nav">
+                        {% if request.user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'user_adverts' %}">Мои объявления</a>
                         </li>
-                        {% if request.user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'reactions_list' %}">Отклики</a>
                         </li>

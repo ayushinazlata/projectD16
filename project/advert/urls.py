@@ -1,14 +1,16 @@
 from django.urls import path
-from .views import AdvertsList, AdvertDetail, AdvertCreate, AdvertEdit, AdvertDelete, ReactionCreate, ReactionsList, \
-    UserAdvertsList
+from .views import (AdvertsListView, AdvertDetailView, UserAdvertsListView, AdvertCreateView, AdvertUpdateView,
+                    AdvertDeleteView, ReactionCreateView, ReactionsListView, approved, ReactionsDeleteView, )
 
 urlpatterns = [
-    path('', AdvertsList.as_view(), name='adverts_list'),
-    path('<int:pk>/', AdvertDetail.as_view(), name='advert_detail'),
-    path('my/', UserAdvertsList.as_view(), name='user_adverts'),
-    path('create/', AdvertCreate.as_view(), name='advert_create'),
-    path('<int:pk>/edit/', AdvertEdit.as_view(), name='advert_edit'),
-    path('<int:pk>/delete/', AdvertDelete.as_view(), name='advert_delete'),
-    path('<int:pk>/reaction/create', ReactionCreate.as_view(), name='reaction_create'),
-    path('reactions/', ReactionsList.as_view(), name='reactions_list'),
+    path('', AdvertsListView.as_view(), name='adverts_list'),
+    path('<int:pk>/', AdvertDetailView.as_view(), name='advert_detail'),
+    path('my_adverts/', UserAdvertsListView.as_view(), name='user_adverts'),
+    path('create/', AdvertCreateView.as_view(), name='advert_create'),
+    path('<int:pk>/update/', AdvertUpdateView.as_view(), name='advert_update'),
+    path('<int:pk>/delete/', AdvertDeleteView.as_view(), name='advert_delete'),
+    path('<int:advert_id>/reaction/create/', ReactionCreateView.as_view(), name='reaction_create'),
+    path('reactions/', ReactionsListView.as_view(), name='reactions_list'),
+    path('reactions/<int:reaction_id>/approved/', approved, name='approved'),
+    path('reactions/<int:pk>/delete/', ReactionsDeleteView.as_view(), name='reaction_delete'),
 ]

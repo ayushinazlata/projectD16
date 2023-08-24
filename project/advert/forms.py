@@ -16,9 +16,9 @@ class AdvertsForm(forms.ModelForm):
     class Meta:
         model = Post
         fields = [
-            'category',
             'title',
             'attachments',
+            'category',
         ]
 
     def clean(self):
@@ -43,14 +43,6 @@ class ReactionForm(forms.ModelForm):
     class Meta:
         model = Reaction
         fields = [
-            'post',
             'text',
         ]
 
-    # def clean(self):
-    #     post = self.cleaned_data['post']
-    #     author = post.author
-    #     print(author)
-    #     if author == user:
-    #         raise forms.ValidationError('Вы не можете откликаться на свое объявление')
-    #     return self.cleaned_data

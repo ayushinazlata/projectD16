@@ -52,11 +52,11 @@ class UserAdvertFilter(FilterSet):
 
 
 class ReactionFilter(FilterSet):
-    category = ModelChoiceFilter(
-        field_name='category',
-        queryset=Category.objects.all(),
-        label=_('Категория'),
-        empty_label=_('выберите категорию'),
+    post = ModelChoiceFilter(
+        field_name='post',
+        queryset=Post.objects.all(),
+        label=_('Объявление'),
+        empty_label=_('выберите объявление'),
     )
 
     date_creation_after = DateFilter(

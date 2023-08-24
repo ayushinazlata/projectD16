@@ -1,51 +1,40 @@
-from datetime import datetime
-
-from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.shortcuts import render
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.mail import send_mail
+from django.db.models import Q
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 
 from .filters import AdvertFilter, ReactionFilter, UserAdvertFilter
 from .forms import AdvertsForm, ReactionForm
 from .models import Post, Reaction
+from .signals import reaction_created
 
 
-class AdvertsList(ListView):
+class AdvertsListView(ListView):
     model = Post
-    ordering = '-created_at'
     template_name = 'adverts.html'
-    context_object_name = 'adverts'   # имя списка, где все объекты; чтобы обратиться в html-шаблоне
+    context_object_name = 'adverts'
     paginate_by = 10
 
-    # Метод get_context_data позволяет нам изменить набор данных,
-    # который будет передан в шаблон.
-    def get_context_data(self, **kwargs):
-        # С помощью super() мы обращаемся к родительским классам
-        # и вызываем у них метод get_context_data с теми же аргументами,
-        # что и были переданы нам.
-        # В ответе мы должны получить словарь.
-        context = super().get_context_data(**kwargs)
-        # К словарю добавим текущую дату в ключ 'time_now'.
-        context['time_now'] = datetime.utcnow()
-        return context
-
     def get_queryset(self):
-        queryset = super().get_queryset()
+        if self.request.user.is_authenticated:
+            queryset = Post.objects.filter(~Q(author=self.request.user))
+        else:
+            queryset = super().get_queryset()
         self.filterset = AdvertFilter(self.request.GET, queryset)
         return self.filterset.qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Добавляем в контекст объект фильтрации.
         context['filterset'] = self.filterset
         return context
 
 
-class UserAdvertsList(ListView):
+class UserAdvertsListView(ListView):
     model = Post
-    ordering = '-created_at'
     template_name = 'user_adverts.html'
-    context_object_name = 'user_adverts'  # имя списка, где все объекты; чтобы обратиться в html-шаблоне
+    context_object_name = 'user_adverts'
     paginate_by = 10
 
     def get_queryset(self):
@@ -55,24 +44,21 @@ class UserAdvertsList(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Добавляем в контекст объект фильтрации.
         context['filterset'] = self.filterset
-        print(context)
         return context
 
 
-class AdvertDetail(DetailView):
+class AdvertDetailView(DetailView):
     model = Post
     template_name = 'advert.html'
     context_object_name = 'advert'
     queryset = Post.objects.all()
 
 
-class AdvertCreate(PermissionRequiredMixin, CreateView):
-    permission_required = ('advert.add_post',)
+class AdvertCreateView(LoginRequiredMixin, CreateView):
     form_class = AdvertsForm
     model = Post
-    template_name = 'advert_edit.html'
+    template_name = 'advert_update.html'
 
     def form_valid(self, form):
         new_post = form.save(commit=False)
@@ -83,50 +69,73 @@ class AdvertCreate(PermissionRequiredMixin, CreateView):
         return reverse_lazy('adverts_list')
 
 
-class AdvertEdit(PermissionRequiredMixin, UpdateView):
-    permission_required = ('advert.change_post',)
+class AdvertUpdateView(LoginRequiredMixin, UpdateView):
     form_class = AdvertsForm
     model = Post
-    template_name = 'advert_edit.html'
+    template_name = 'advert_update.html'
 
 
-class AdvertDelete(PermissionRequiredMixin, DeleteView):
-    permission_required = ('advert.delete_post',)
+class AdvertDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
     template_name = 'advert_delete.html'
     success_url = reverse_lazy('adverts_list')
 
 
-class ReactionCreate(CreateView):
-    permission_required = ('advert.add_reaction',)
+class ReactionCreateView(LoginRequiredMixin, CreateView):
     form_class = ReactionForm
     model = Reaction
+    pk_url_kwarg = 'advert_id'
     template_name = 'reaction_create.html'
 
-    # def form_valid(self, form):
-    #     self.object = form.save(commit=False)
-    #     self.object.post = Post.objects.get()
-    #     return super().form_valid(form)
+    def form_valid(self, form):
+        new_reaction = form.save(commit=False)
+        new_reaction.post = Post.objects.get(pk=self.kwargs['advert_id'])
+        new_reaction.author = self.request.user
+        reaction_created(new_reaction, created=True)
+        return super().form_valid(new_reaction)
 
     def get_success_url(self):
         return reverse_lazy('adverts_list')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['advert_id'] = self.kwargs['advert_id']
+        return context
 
-class ReactionsList(ListView):
+
+class ReactionsListView(LoginRequiredMixin, ListView):
     model = Reaction
-    ordering = '-created_at'
     template_name = 'reactions.html'
     context_object_name = 'reactions'
     paginate_by = 10
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = Reaction.objects.filter(post__author=self.request.user)
         self.filterset = ReactionFilter(self.request.GET, queryset)
         return self.filterset.qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['time_now'] = datetime.utcnow()
+        context["filterset"] = self.filterset
         return context
 
+
+class ReactionsDeleteView(LoginRequiredMixin, DeleteView):
+    model = Reaction
+    template_name = 'reaction_delete.html'
+    success_url = reverse_lazy('reactions_list')
+
+
+def approved(request, reaction_id):
+    Reaction.objects.filter(id=reaction_id).update(is_approved=True)
+    reaction = Reaction.objects.get(id=reaction_id)
+    post = reaction.post
+    user = request.user
+    send_mail(
+        subject='Пользователь принял ваш отклик!',
+        message=f'{user.username}, ваш отклик на объявление {post} принят пользователем {post.author}',
+        from_email=None,
+        recipient_list=[user.email],
+    )
+    return redirect('/adverts/')
 

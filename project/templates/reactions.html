@@ -9,11 +9,10 @@
 <h1>Все отклики</h1>
 <h6><i>На странице отображено {{reactions|length}} из {{paginator.count}} откликов</i></h6>
 <hr>
-<!--{# Добавляем форму, которая объединяет набор полей, которые будут отправляться в запросе #}-->
-   <form action="" method="get">
-       {{ filterset.form.as_p }}
-       <input type="submit" value="Найти" />
-   </form>
+<form action="" method="get">
+   {{ filterset.form.as_p }}
+   <input type="submit" value="Найти" />
+</form>
 <hr>
 
 
@@ -22,17 +21,32 @@
         <tr>
             <td>Дата создания</td>
             <td>Автор</td>
-            <td>Отклик</td>
             <td>Объявление</td>
-
+            <td>Отклик</td>
+            {% if user.is_authenticated %}
+                <td>Действия</td>
+            {% endif %}
         </tr>
 
         {% for reaction in reactions %}
         <tr>
             <td>{{ reaction.created_at|date:'d M Y' }}</td>
             <td>{{ reaction.author }}</td>
+
+            <td><a href="{% url 'advert_detail' reaction.post.id %}">{{reaction.post}}</a></td>
             <td>{{ reaction.text }}</td>
-            <td>ТУТ ДОЛЖНО ОТОБРАЖАТЬСЯ ОБЪЯВЛЕНИЕ</td>
+            <td>
+                {% if reaction.is_approved %}
+                <p>Принято</p>
+                {% else %}
+                 <form action="{% url 'approved' reaction.id %}" method="get">
+                     <input type="submit" value="Принять" />
+                 </form>
+                {% endif %}
+                <form action="{% url 'reaction_delete' reaction.id %}" method="get">
+                    <input type="submit" value="Удалить" />
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </table>

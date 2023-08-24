@@ -7,16 +7,17 @@
 
 {% block content %}
 <h1>Мои объявления</h1>
-<h6><i>На странице отображено {{adverts|length}} из {{paginator.count}} объявлений</i></h6>
-{% if perms.advert.add_post %}
-    <a class="text-center" href="{% url 'advert_create' %}">Создать объявление</a>
+<h6><i>На странице отображено {{user_adverts|length}} из {{paginator.count}} объявлений</i></h6>
+{% if user.is_authenticated %}
+<form action="{% url 'advert_create' %}" method="get">
+    <input type="submit" value="Создать объявление" />
+</form>
 {% endif %}
 <hr>
-<!--{# Добавляем форму, которая объединяет набор полей, которые будут отправляться в запросе #}-->
-   <form action="" method="get">
-       {{ filterset.form.as_p }}
-       <input type="submit" value="Найти" />
-   </form>
+<form action="" method="get">
+   {{ filterset.form.as_p }}
+   <input type="submit" value="Найти" />
+</form>
 <hr>
 
 
@@ -26,9 +27,8 @@
             <td>Дата создания</td>
             <td>Категория</td>
             <td>Заголовок</td>
-            {% if perms.advert.change_post or perms.advert.delete_post %}
-                <td>Действия</td>
-            {% endif %}
+            <td>Текст</td>
+            <td>Действия</td>
         </tr>
 
         {% for advert in user_adverts %}
@@ -38,13 +38,14 @@
             <td>
                 <a href="{% url 'advert_detail' advert.id %}">{{ advert.title }}</a>
             </td>
+            <td>{{ advert.attachments|truncatechars:30 }}</td>
             <td>
-                {% if perms.advert.change_post %}
-                    <a href="{% url 'advert_edit' advert.id %}">Редактировать</a>
-                {% endif %}
-                {% if perms.advert.delete_post %}
-                    <a href="{% url 'advert_delete' advert.id %}">Удалить</a>
-                {% endif %}
+                <form action="{% url 'advert_update' advert.id %}" method="get">
+                     <input type="submit" value="Редактировать" />
+                </form>
+                <form action="{% url 'advert_delete' advert.id %}" method="get">
+                     <input type="submit" value="Удалить" />
+                </form>
             </td>
         </tr>
         {% endfor %}

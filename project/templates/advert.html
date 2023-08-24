@@ -1,4 +1,3 @@
-<!--  наследуемся от шаблона default.html, который мы создавали для flatpages -->
 {% extends 'flatpages/default.html' %}
 
 {% block title %}
@@ -10,6 +9,13 @@
 <h3>{{ advert.created_at|date:'d M Y' }}</h3>
 <hr>
 <h2>{{ advert.attachments |safe }}</h2>
+
+<hr>
+<form action="{% url 'reaction_create' advert.id %}" method="get">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Откликнуться" />
+</form>
 
 
 {% endblock content %}
